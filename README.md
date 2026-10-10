@@ -10,6 +10,8 @@
 
 需要 PHP 7.4+（建议 8.x），并启用 `curl` 扩展（无 curl 时会自动降级为 stream 方式）。
 
+### 方式一：本地 / VPS 命令行（最简单）
+
 ```bash
 ./start.sh            # 默认监听 127.0.0.1:8080
 ./start.sh 9000       # 自定义端口
@@ -17,11 +19,28 @@
 php -S 127.0.0.1:8080 router.php
 ```
 
-然后浏览器打开 **http://127.0.0.1:8080**，在右上角粘贴 API 密钥（`rnm_` 开头，
-在独角鲸官网 → 个人资料页生成），点「保存并连接」即可。
+### 方式二：宝塔 / 1Panel（nginx + php-fpm）
+
+1. 把本仓库上传到服务器并解压（例如 `/www/wwwroot/narwhal/`）。
+2. 宝塔：「网站」→「添加站点」→ 根目录选择 `.../narwhal/public`，
+   PHP 版本选 8.x；然后「网站设置」→「配置文件」，在 `server {}` 段内加一条：
+   ```nginx
+   location / {
+       try_files $uri $uri/ /index.php?$query_string;
+   }
+   ```
+   保存后重载 nginx。Apache 站点无需配置（已自带 `public/.htaccess`）。
+3. 1Panel：「网站」→「创建网站」→「运行环境」选 PHP，
+   上传解压后把「运行目录」设为 `public`，PHP 版本选 8.x；
+   「网站设置」→「配置文件」同样加上面的 `try_files` 规则。
+4. 浏览器打开你的站点域名，在右上角粘贴 API 密钥（`rnm_` 开头，
+   在独角鲸官网 → 个人资料页生成），点「保存并连接」即可。
+
+> 宝塔/1Panel 下不方便设置环境变量时，可复制 `config.example.php`
+> 为 `config.php`（与 `public/` 同级，在 web 根目录之外）来覆盖上游地址。
 
 - 密钥只保存在浏览器 localStorage，不上传到任何第三方。
-- 零第三方依赖：只用 PHP 内置服务器 + curl/stream。
+- 零第三方依赖：只用 PHP 内置函数 + curl/stream。
 
 ## 为什么需要本地服务？
 
@@ -54,9 +73,13 @@ NARWHAL_UPSTREAM=http://127.0.0.1:18082 php -S 127.0.0.1:8080 router.php
 
 ## 文件说明
 
-- `router.php` — PHP 内置服务器路由：静态文件服务 + `/api/*` 反向代理
-- `start.sh` — 一键启动脚本
+- `public/index.php` — 前端控制器（宝塔/1Panel 的 nginx+php-fpm 入口）
 - `public/index.html` — 前端单页应用（与 Python 版共用同一套）
+- `public/.htaccess` — Apache 伪静态规则
+- `src/panel.php` — 核心逻辑：`/api/*` 反向代理 + 请求头兼容（nginx 下无 `getallheaders()` 时自动降级）
+- `router.php` — PHP 内置服务器路由（本地 `./start.sh` 用）
+- `start.sh` — 一键启动脚本
+- `config.example.php` — 配置示例（复制为 `config.php` 生效）
 
 ## 安全提示
 
