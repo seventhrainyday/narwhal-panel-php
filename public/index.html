@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>独角鲸控制面板 · Narwhal Cloud</title>
+<style>
+:root{
+  --bg:#0f1420; --card:#1a2233; --card2:#222c42; --line:#2c3a55;
+  --txt:#e8edf7; --muted:#8b98b3; --acc:#4da3ff; --ok:#3ddc84; --warn:#ffb020; --bad:#ff5d5d;
+  --r:12px;
+}
+*{box-sizing:border-box; margin:0; padding:0}
+body{background:var(--bg); color:var(--txt); font:15px/1.6 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif; min-height:100vh}
+a{color:var(--acc)}
+header{position:sticky; top:0; z-index:50; background:#131a29ee; backdrop-filter:blur(8px); border-bottom:1px solid var(--line)}
+.hwrap{max-width:1180px; margin:0 auto; padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.logo{font-size:20px; font-weight:800; white-space:nowrap}
+.logo small{font-weight:400; color:var(--muted); font-size:12px; margin-left:6px}
+.keybox{margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.keybox input{width:280px; max-width:60vw}
+input,select,textarea{background:#0d1320; border:1px solid var(--line); color:var(--txt); border-radius:8px; padding:8px 10px; font-size:14px}
+input:focus,select:focus,textarea:focus{outline:none; border-color:var(--acc)}
+textarea{width:100%; min-height:90px; resize:vertical}
+button{background:var(--acc); color:#04121f; border:0; border-radius:8px; padding:8px 14px; font-size:14px; font-weight:700; cursor:pointer}
+button:hover{filter:brightness(1.1)}
+button.ghost{background:transparent; color:var(--txt); border:1px solid var(--line)}
+button.danger{background:var(--bad); color:#fff}
+button.warnb{background:var(--warn); color:#201400}
+button.okb{background:var(--ok); color:#03210f}
+button:disabled{opacity:.45; cursor:not-allowed}
+button.sm{padding:4px 10px; font-size:12px; border-radius:6px}
+nav.tabs{max-width:1180px; margin:0 auto; padding:0 16px; display:flex; gap:4px; overflow-x:auto; border-top:1px solid var(--line)}
+nav.tabs button{background:none; color:var(--muted); border-radius:0; padding:12px 14px; font-weight:600; border-bottom:3px solid transparent; white-space:nowrap}
+nav.tabs button.on{color:var(--txt); border-bottom-color:var(--acc)}
+main{max-width:1180px; margin:0 auto; padding:18px 16px 80px}
+.cards{display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:14px}
+.card{background:var(--card); border:1px solid var(--line); border-radius:var(--r); padding:14px}
+.card h3{font-size:16px; margin-bottom:8px; word-break:break-all}
+.card .row{display:flex; justify-content:space-between; gap:8px; padding:3px 0; font-size:13px}
+.card .row b{font-weight:600}
+.muted{color:var(--muted)} .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+.pill{display:inline-block; padding:2px 10px; border-radius:20px; font-size:12px; background:var(--card2); border:1px solid var(--line)}
+.pill.ok{background:#0e2f1f; color:var(--ok); border-color:#1d5c37}
+.pill.bad{background:#331414; color:var(--bad); border-color:#6b2222}
+.pill.warn{background:#33270e; color:var(--warn); border-color:#6b521c}
+.toolbar{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px; align-items:center}
+.toolbar input,.toolbar select{min-width:0}
+table{width:100%; border-collapse:collapse; font-size:13px; background:var(--card); border-radius:var(--r); overflow:hidden}
+th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line); vertical-align:top}
+th{color:var(--muted); font-weight:600; background:var(--card2); white-space:nowrap}
+tr:last-child td{border-bottom:0}
+.kv{display:grid; grid-template-columns:150px 1fr; gap:6px 12px; font-size:14px}
+.kv dt{color:var(--muted)} .kv dd{word-break:break-all}
+#toast{position:fixed; bottom:24px; left:50%; transform:translateX(-50%); z-index:200; display:flex; flex-direction:column; gap:8px; align-items:center}
+.toastmsg{background:#1d2740; border:1px solid var(--acc); padding:10px 18px; border-radius:10px; box-shadow:0 6px 24px #000a; max-width:90vw}
+.toastmsg.err{border-color:var(--bad)}
+#modal{position:fixed; inset:0; z-index:100; display:none; align-items:center; justify-content:center; background:#000a; padding:16px}
+#modal.open{display:flex}
+.mbox{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:20px; width:520px; max-width:96vw; max-height:88vh; overflow:auto}
+.mbox h3{margin-bottom:12px}
+.mbox .fld{margin-bottom:10px}
+.mbox .fld label{display:block; color:var(--muted); font-size:13px; margin-bottom:4px}
+.mbox .fld input,.mbox .fld select,.mbox .fld textarea{width:100%}
+.mfoot{display:flex; gap:8px; justify-content:flex-end; margin-top:14px}
+pre.dump{background:#0d1320; border:1px solid var(--line); border-radius:8px; padding:10px; overflow:auto; font-size:12px; max-height:300px}
+.pager{display:flex; gap:10px; align-items:center; margin-top:12px; justify-content:center}
+.empty{color:var(--muted); text-align:center; padding:40px 10px}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+@media(max-width:760px){.grid2{grid-template-columns:1fr} .kv{grid-template-columns:120px 1fr}}
+.badge{font-size:11px; background:var(--card2); border:1px solid var(--line); padding:1px 8px; border-radius:12px; color:var(--muted)}
+.backlink{cursor:pointer; color:var(--acc); font-size:14px; margin-bottom:10px; display:inline-block}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="logo">🦈 独角鲸<small>Narwhal Cloud 控制面板</small></div>
+    <div class="keybox">
+      <input id="apikey" type="password" placeholder="粘贴 API 密钥 (rnm_...)" autocomplete="off">
+      <button id="savekey" class="sm">保存并连接</button>
+      <button id="clearkey" class="sm ghost">清除</button>
+      <span id="connstat" class="pill">未连接</span>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs"></nav>
+</header>
+<main id="main"></main>
+<div id="modal"><div class="mbox" id="mbox"></div></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ================= 基础 ================= */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmtTime = t => { if(!t) return "-"; const d = new Date(t*1000); return d.toLocaleString("zh-CN",{hour12:false}); };
+const fmtMoney = n => n==null||n==="" ? "-" : "$" + Number(n).toFixed(2);
+const fmtBytes = b => { if(b==null) return "-"; const u=["B","KB","MB","GB","TB"]; let i=0; b=Number(b); while(b>=1024&&i<4){b/=1024;i++;} return b.toFixed(2)+" "+u[i]; };
+const daysLeft = t => { if(!t) return "-"; const d = Math.ceil((t*1000-Date.now())/86400000); return d<0 ? `<span class="bad">已过期 ${-d} 天</span>` : (d<=3?`<span class="warn">${d} 天</span>`:`${d} 天`); };
+
+function toast(msg, err){
+  const d = document.createElement("div");
+  d.className = "toastmsg" + (err ? " err" : "");
+  d.textContent = msg;
+  $("#toast").appendChild(d);
+  setTimeout(()=>d.remove(), 3600);
+}
+/* 模态框: modal({title, bodyHTML, okText}) -> Promise<HTMLElement|null> (表单容器, 点确定返回容器, 点取消返回null) */
+function modal(title, bodyHTML, okText){
+  return new Promise(res=>{
+    const m = $("#modal"), box = $("#mbox");
+    box.innerHTML = `<h3>${esc(title)}</h3><div class="mbody">${bodyHTML}</div>
+      <div class="mfoot"><button class="ghost" id="m_cancel">取消</button>
+      <button id="m_ok">${esc(okText||"确定")}</button></div>`;
+    m.classList.add("open");
+    const done = v => { m.classList.remove("open"); res(v); };
+    box.querySelector("#m_cancel").onclick = ()=>done(null);
+    box.querySelector("#m_ok").onclick = ()=>done(box.querySelector(".mbody"));
+    m.onclick = e => { if(e.target===m) done(null); };
+  });
+}
+function fld(label, inner){ return `<div class="fld"><label>${esc(label)}</label>${inner}</div>`; }
+const inp = (id, val="", ph="", type="text") => `<input id="${id}" type="${type}" value="${esc(val)}" placeholder="${esc(ph)}">`;
+
+/* ================= API 客户端 ================= */
+const S = {
+  key: localStorage.getItem("narwhal_key") || "",
+  authed: false,
+};
+// 组装 query string: 自动丢弃 undefined/null/空字符串, 避免 "search=undefined" 发到服务端
+const qs = p => new URLSearchParams(
+  Object.fromEntries(Object.entries(p||{}).filter(([,v])=>v!==undefined&&v!==null&&v!=="")));
+async function req(method, path, body, opt={}){
+  const headers = {};
+  if(S.key) headers["Authorization"] = "Bearer " + S.key;
+  let payload = null;
+  if(body instanceof FormData){ payload = body; }              // 浏览器自动设 multipart boundary
+  else if(body !== undefined){ headers["Content-Type"]="application/json"; payload = JSON.stringify(body); }
+  let res;
+  try{
+    res = await fetch("/api/" + path.replace(/^\/+/,""), {method, headers, body: payload});
+  }catch(e){ throw new Error("网络请求失败: "+e.message); }
+  if(res.status === 401){ S.authed=false; paintConn(); throw new Error("401 未授权: API 密钥无效或已过期"); }
+  if(opt.raw) return res;                                      // 下载类: 调用方自己处理
+  const text = await res.text();
+  let j;
+  try{ j = JSON.parse(text); }catch(e){ throw new Error(`服务端返回非 JSON (HTTP ${res.status})`); }
+  if(j && typeof j.code !== "undefined" && j.code !== 0) throw new Error(j.msg || ("错误码 "+j.code));
+  return j ? j.data : null;
+}
+const api = {
+  // 认证 / 用户
+  login: (email,password)=>req("POST","auth/login",{email,password}),
+  me: ()=>req("GET","user/me"),
+  updateNotify: b=>req("PATCH","user/me/notify",b),
+  testNotify: ()=>req("POST","user/me/test-notify"),
+  updatePayInfo: text=>req("PATCH","user/me/payment-info",{text}),
+  uploadPayQR: fd=>req("POST","user/me/payment-qr",fd),
+  tgBindStart: ()=>req("POST","user/me/tg-bind/start"),
+  tgUnbind: ()=>req("DELETE","user/me/tg-bind"),
+  changePassword: p=>req("POST","user/password",{new_password:p}),
+  getApiKey: ()=>req("GET","user/apikey"),
+  rotateApiKey: ()=>req("POST","user/apikey"),
+  deleteApiKey: ()=>req("DELETE","user/apikey"),
+  // 公开
+  announcements: (p={})=>req("GET","announcements?"+qs(p)),
+  publicMachines: ()=>req("GET","machines/public"),
+  publicMachine: id=>req("GET",`machines/${id}/public`),
+  testSpeed: (id,codes)=>req("POST",`machines/${id}/test-speed`,{country_codes:codes}),
+  tgbot: ()=>req("GET","tgbot/info"),
+  plans: (p={})=>req("GET","plans?"+qs(p)),
+  plan: id=>req("GET",`plans/${id}`),
+  promoPreview: (code,plan_id,amount)=>req("GET","promo-codes/preview?"+qs({code,plan_id,amount})),
+  // VM
+  vms: (p={})=>req("GET","vms?"+qs(p)),
+  buyVM: b=>req("POST","vms",b),
+  vm: id=>req("GET",`vms/${id}`),
+  destroyVM: id=>req("DELETE",`vms/${id}`),
+  refundPreview: id=>req("GET",`vms/${id}/refund-preview`),
+  renewVM: id=>req("POST",`vms/${id}/renew`),
+  autoRenewVM: (id,v)=>req("PATCH",`vms/${id}/auto-renew`,{auto_renew:v}),
+  startVM: id=>req("POST",`vms/${id}/start`),
+  stopVM: (id,force)=>req("POST",`vms/${id}/stop`,{force:!!force}),
+  restartVM: id=>req("POST",`vms/${id}/restart`),
+  resetPw: (id,pw)=>req("POST",`vms/${id}/reset-password`,pw?{new_password:pw}:{}),
+  reinstall: (id,img,pw)=>req("POST",`vms/${id}/reinstall`,pw?{os_image:img,new_password:pw}:{os_image:img}),
+  remarkVM: (id,r)=>req("PATCH",`vms/${id}/remark`,{remark:r}),
+  tagsVM: (id,t)=>req("PATCH",`vms/${id}/tags`,{tags:t}),
+  pushVM: (id,rcpt)=>req("POST",`vms/${id}/push`,{recipient:rcpt}),
+  portFwds: id=>req("GET",`vms/${id}/port-forwards`),
+  addPortFwd: (id,b)=>req("POST",`vms/${id}/port-forwards`,b),
+  delPortFwd: (id,proto,port)=>req("DELETE",`vms/${id}/port-forwards/${proto}/${port}`),
+  // 市场
+  listings: (p={})=>req("GET","market/listings?"+qs(p)),
+  listing: id=>req("GET",`market/listings/${id}`),
+  createListing: b=>req("POST","market/listings",b),
+  cancelListing: id=>req("DELETE",`market/listings/${id}`),
+  buyListing: id=>req("POST",`market/listings/${id}/buy`),
+  myListings: (p={})=>req("GET","market/my-listings?"+qs(p)),
+  // IP 资源
+  ipPools: ()=>req("GET","ip-resources/pools"),
+  ipResources: (p={})=>req("GET","ip-resources?"+qs(p)),
+  rentIP: b=>req("POST","ip-resources",b),
+  ipResource: id=>req("GET",`ip-resources/${id}`),
+  renewIP: id=>req("POST",`ip-resources/${id}/renew`),
+  autoRenewIP: (id,v)=>req("PATCH",`ip-resources/${id}/auto-renew`,{auto_renew:v}),
+  remarkIP: (id,r)=>req("PATCH",`ip-resources/${id}/remark`,{remark:r}),
+  bindIP: (id,vm_id)=>req("POST",`ip-resources/${id}/bind`,{vm_id}),
+  unbindIP: id=>req("POST",`ip-resources/${id}/unbind`),
+  resetIPKey: id=>req("POST",`ip-resources/${id}/reset-key`),
+  ipClientConfig: id=>req("GET",`ip-resources/${id}/client-config`,undefined,{raw:true}),
+  // 账单 / 支付 / 提现
+  transactions: (p={})=>req("GET","billing/transactions?"+qs(p)),
+  orders: (p={})=>req("GET","billing/orders?"+qs(p)),
+  payRecords: (p={})=>req("GET","payment/records?"+qs(p)),
+  payRecord: id=>req("GET",`payment/records/${id}`),
+  payInit: (gw,b)=>req("POST",`payment/${gw}/init`,b),
+  wdInfo: ()=>req("GET","withdrawals/info"),
+  withdraw: b=>req("POST","withdrawals",b),
+  withdrawal: id=>req("GET",`withdrawals/${id}`),
+  // 工单
+  tickets: (p={})=>req("GET","tickets?"+qs(p)),
+  createTicket: b=>req("POST","tickets",b),
+  ticket: id=>req("GET",`tickets/${id}`),
+  replyTicket: (id,content)=>req("POST",`tickets/${id}/messages`,{content}),
+  closeTicket: id=>req("PUT",`tickets/${id}/close`),
+  reopenTicket: id=>req("PUT",`tickets/${id}/reopen`),
+  // 机器主
+  machines: (p={})=>req("GET","machines?"+qs(p)),
+  registerMachine: b=>req("POST","machines",b),
+  machine: id=>req("GET",`machines/${id}`),
+  updateMachine: (id,b)=>req("PATCH",`machines/${id}`,b),
+  deleteMachine: id=>req("DELETE",`machines/${id}`),
+  rotateToken: id=>req("POST",`machines/${id}/rotate-token`),
+  notifyBuyers: (id,b)=>req("POST",`machines/${id}/notify-buyers`,b),
+  machineVMs: (id,p={})=>req("GET",`machines/${id}/vms?`+qs(p)),
+  machinePlans: (id,p={})=>req("GET",`machines/${id}/plans?`+qs(p)),
+  createMachinePlan: (id,b)=>req("POST",`machines/${id}/plans`,b),
+  updatePlan: (id,b)=>req("PATCH",`plans/${id}`,b),
+  deletePlan: id=>req("DELETE",`plans/${id}`),
+  machinePromos: (id,p={})=>req("GET",`machines/${id}/promo-codes?`+qs(p)),
+  createPromo: b=>req("POST","promo-codes",b),
+  enablePromo: id=>req("PUT",`promo-codes/${id}/enable`),
+  disablePromo: id=>req("PUT",`promo-codes/${id}/disable`),
+  deletePromo: id=>req("DELETE",`promo-codes/${id}`),
+  blockedUsers: (p={})=>req("GET","machines/blocked-users?"+qs(p)),
+  unblockUser: uid=>req("DELETE",`machines/blocked-users/${uid}`),
+  // 文件
+  uploadFile: fd=>req("POST","files/upload",fd),
+};
+
+/* ================= 顶部: 密钥 & 连接状态 ================= */
+function paintConn(){
+  const el = $("#connstat");
+  if(S.authed){ el.textContent="已连接"; el.className="pill ok"; }
+  else if(S.key){ el.textContent="密钥已填(未验证)"; el.className="pill warn"; }
+  else { el.textContent="未连接"; el.className="pill"; }
+}
+async function verifyKey(){
+  if(!S.key){ S.authed=false; paintConn(); return false; }
+  try{ await api.me(); S.authed=true; }
+  catch(e){ S.authed=false; toast("连接失败: "+e.message, true); }
+  paintConn();
+  return S.authed;
+}
+function needAuth(){
+  return `<div class="empty">🔑 请先在右上角填写 API 密钥并点击「保存并连接」<br>
+    <span class="muted">密钥在独角鲸官网 → 个人资料页生成 (以 rnm_ 开头)</span></div>`;
+}
+
+/* ================= 标签页路由 ================= */
+const TABS = [
+  ["home","🏠 我的"], ["vms","🖥️ 云主机"], ["buy","🛒 购买"],
+  ["market","🔁 二手市场"], ["ips","🌐 IP资源"], ["bill","💰 账单"],
+  ["tickets","🎫 工单"], ["owner","🏭 机器主"], ["settings","⚙️ 设置"],
+];
+let curTab = "home";
+function renderTabs(){
+  $("#tabs").innerHTML = TABS.map(([k,n])=>`<button data-t="${k}" class="${k===curTab?'on':''}">${n}</button>`).join("");
+  $("#tabs").querySelectorAll("button").forEach(b=>b.onclick=()=>{ curTab=b.dataset.t; renderTabs(); route(); });
+}
+async function route(){
+  const M = $("#main");
+  M.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    if(curTab==="home") await tabHome(M);
+    else if(curTab==="vms") await tabVMs(M);
+    else if(curTab==="buy") await tabBuy(M);
+    else if(curTab==="market") await tabMarket(M);
+    else if(curTab==="ips") await tabIPs(M);
+    else if(curTab==="bill") await tabBill(M);
+    else if(curTab==="tickets") await tabTickets(M);
+    else if(curTab==="owner") await tabOwner(M);
+    else if(curTab==="settings") await tabSettings(M);
+  }catch(e){ M.innerHTML = `<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+function statusPill(s){
+  s = String(s||"").toLowerCase();
+  if(["running","active","online","paid","open","resolved"].includes(s)) return `<span class="pill ok">${esc(s)}</span>`;
+  if(["stopped","offline","expired","closed","failed","disabled","banned"].includes(s)) return `<span class="pill bad">${esc(s)}</span>`;
+  if(["pending","creating","suspended"].includes(s)) return `<span class="pill warn">${esc(s)}</span>`;
+  return `<span class="pill">${esc(s||"-")}</span>`;
+}
+
+/* ================= 🏠 我的 ================= */
+async function tabHome(M){
+  let meHtml = needAuth(), annHtml = "";
+  if(S.key){
+    try{
+      const me = await api.me();
+      meHtml = `<div class="grid2">
+        <div class="card"><h3>👤 ${esc(me.email||"")}</h3>
+          <div class="row"><span class="muted">可用余额</span><b class="ok">${fmtMoney(me.available_balance)}</b></div>
+          <div class="row"><span class="muted">托管余额</span><b>${fmtMoney(me.escrow_balance)}</b></div>
+          <div class="row"><span class="muted">托管锁定</span><b>${fmtMoney(me.escrow_locked_value)}</b></div>
+          <div class="row"><span class="muted">佣金率</span><b>${me.commission_rate==null?"-":(Number(me.commission_rate)*100).toFixed(1)+"%"}</b></div>
+          <div class="row"><span class="muted">角色</span><b>${esc(me.role||"-")}</b></div>
+          <div class="row"><span class="muted">通知方式</span><b>${esc(me.notify_via||"-")} / ${esc(me.notify_lang||"-")}</b></div>
+          <div class="row"><span class="muted">Telegram</span><b>${me.tg_chat_id?"已绑定":"未绑定"}</b></div>
+          <div class="row"><span class="muted">注册时间</span><b>${fmtTime(me.created_at)}</b></div>
+        </div>
+        <div class="card"><h3>📣 平台公告</h3><div id="ann_list"><span class="muted">加载中…</span></div></div>
+      </div>`;
+    }catch(e){ meHtml = `<div class="empty">❌ ${esc(e.message)}</div>`; }
+  }
+  M.innerHTML = meHtml;
+  if(S.key){
+    try{
+      const d = await api.announcements({page:1,page_size:10});
+      const list = d.announcements || d.items || d || [];
+      $("#ann_list").innerHTML = (Array.isArray(list)?list:[]).map(a=>`
+        <div style="margin-bottom:10px"><b>${esc(a.title)}</b>
+        <div class="muted" style="font-size:13px">${a.content||""}</div></div>`).join("") || `<span class="muted">暂无公告</span>`;
+    }catch(e){ const el=$("#ann_list"); if(el) el.innerHTML = `<span class="bad">${esc(e.message)}</span>`; }
+  }
+}
+
+/* ================= 🖥️ 云主机 ================= */
+let vmPage = 1, vmSearch = "";
+async function tabVMs(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `
+    <div class="toolbar">
+      <input id="vm_q" placeholder="按备注搜索…" value="${esc(vmSearch)}" style="width:220px">
+      <button id="vm_go" class="sm">搜索</button>
+      <button id="vm_new" class="sm okb">＋ 购买新主机</button>
+    </div>
+    <div class="cards" id="vm_cards"></div>
+    <div class="pager" id="vm_pager"></div>`;
+  $("#vm_go").onclick = ()=>{ vmSearch=$("#vm_q").value.trim(); vmPage=1; loadVMs(); };
+  $("#vm_q").onkeydown = e=>{ if(e.key==="Enter") $("#vm_go").click(); };
+  $("#vm_new").onclick = ()=>{ curTab="buy"; renderTabs(); route(); };
+  await loadVMs();
+}
+async function loadVMs(){
+  const box = $("#vm_cards"); if(!box) return;
+  box.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.vms({page:vmPage,page_size:20,search:vmSearch||undefined});
+    const vms = d.vms||[];
+    box.innerHTML = vms.map(v=>`
+      <div class="card" style="cursor:pointer" data-vm="${v.id}">
+        <h3>${esc(v.remark||"(未备注)")} ${statusPill(v.status)}</h3>
+        <div class="row"><span class="muted">IP</span><b>${esc(v.ip||(v.ip_addresses||[])[0]||"-")}</b></div>
+        <div class="row"><span class="muted">配置</span><b>${v.cpu}C / ${(v.ram_mb/1024).toFixed(1)}G / ${v.disk_gb}G</b></div>
+        <div class="row"><span class="muted">地区</span><b>${esc(v.machine_region||"-")} · ${esc(v.machine_name||"")}</b></div>
+        <div class="row"><span class="muted">到期</span><b>${fmtTime(v.expires_at)} (${daysLeft(v.expires_at)})</b></div>
+        <div class="row"><span class="muted">月价</span><b>${fmtMoney(v.price_monthly)}</b></div>
+      </div>`).join("") || `<div class="empty">没有云主机</div>`;
+    box.querySelectorAll("[data-vm]").forEach(c=>c.onclick=()=>vmDetail(c.dataset.vm));
+    const total = d.total||0, pages = Math.max(1, Math.ceil(total/20));
+    $("#vm_pager").innerHTML = total?`
+      <button class="sm ghost" ${vmPage<=1?"disabled":""} id="vp">上一页</button>
+      <span class="muted">${vmPage} / ${pages} (共 ${total})</span>
+      <button class="sm ghost" ${vmPage>=pages?"disabled":""} id="vn">下一页</button>`:"";
+    const p=$("#vp"), n=$("#vn");
+    if(p) p.onclick=()=>{vmPage--;loadVMs();};
+    if(n) n.onclick=()=>{vmPage++;loadVMs();};
+  }catch(e){ box.innerHTML = `<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function vmDetail(id){
+  const M = $("#main");
+  M.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const v = await api.vm(id);
+    const creds = v.credentials||{};
+    const osImgs = v.machine_os_images||[];
+    M.innerHTML = `
+      <span class="backlink" id="vback">← 返回列表</span>
+      <div class="card" style="margin-bottom:14px">
+        <h3>${esc(v.remark||"(未备注)")} ${statusPill(v.status)} ${v.is_listed?'<span class="badge">挂售中</span>':""}</h3>
+        <dl class="kv">
+          <dt>主机 ID</dt><dd><code style="font-size:12px">${esc(v.id)}</code></dd>
+          <dt>IP</dt><dd>${esc([v.ip,...(v.ip_addresses||[])].filter(Boolean).join(" / ")||"-")}</dd>
+          <dt>入口域名</dt><dd>${esc(v.machine_entry_host||"-")}</dd>
+          <dt>配置</dt><dd>${v.cpu}C / ${(v.ram_mb/1024).toFixed(1)}G 内存 / ${v.disk_gb}G 硬盘 / ${v.bandwidth_mbps}Mbps / ${v.monthly_traffic_gb}G月流量</dd>
+          <dt>系统</dt><dd>${esc(v.os_name||v.os_image||"-")}</dd>
+          <dt>登录账号</dt><dd>${esc(creds.username||creds.user||"root")}</dd>
+          <dt>登录密码</dt><dd><code>${esc(creds.password||"********")}</code> <button class="sm ghost" id="v_showpw">重置密码</button></dd>
+          <dt>CPU / 内存</dt><dd>${v.cpu_pct==null?"-":v.cpu_pct.toFixed(1)+"%"} / ${v.ram_used_mb==null?"-":fmtBytes(v.ram_used_mb*1048576)}</dd>
+          <dt>本月流量</dt><dd>↑ ${fmtBytes(v.monthly_traffic_out)} ↓ ${fmtBytes(v.monthly_traffic_in)}</dd>
+          <dt>到期时间</dt><dd>${fmtTime(v.expires_at)} (${daysLeft(v.expires_at)})</dd>
+          <dt>自动续费</dt><dd>${v.auto_renew?'<span class="ok">开</span>':'<span class="muted">关</span>'}</dd>
+          <dt>标签</dt><dd>${(v.tags||[]).map(t=>`<span class="badge">${esc(t)}</span>`).join(" ")||"-"}</dd>
+          <dt>母机</dt><dd>${esc(v.machine_name||"-")} (${esc(v.machine_region||"-")})</dd>
+        </dl>
+      </div>
+      <div class="card" style="margin-bottom:14px"><h3>⚡ 电源 & 系统</h3>
+        <div class="toolbar">
+          <button class="sm okb" id="a_start">开机</button>
+          <button class="sm warnb" id="a_stop">关机</button>
+          <button class="sm warnb" id="a_stop_f">强制关机</button>
+          <button class="sm warnb" id="a_restart">重启</button>
+          <button class="sm" id="a_reinstall">重装系统</button>
+          <button class="sm" id="a_renew">续费</button>
+          <button class="sm ghost" id="a_autorenew">${v.auto_renew?"关闭自动续费":"开启自动续费"}</button>
+        </div>
+        <div class="toolbar">
+          <button class="sm ghost" id="a_remark">改备注</button>
+          <button class="sm ghost" id="a_tags">改标签</button>
+          <button class="sm ghost" id="a_push">转让(Push)</button>
+          <button class="sm ghost" id="a_sell">挂到二手市场</button>
+          <button class="sm danger" id="a_destroy">销毁(退款)</button>
+        </div>
+      </div>
+      <div class="card"><h3>🔌 端口转发 <button class="sm" id="pf_add" style="margin-left:8px">＋ 添加</button></h3>
+        <div id="pf_list"><span class="muted">加载中…</span></div>
+      </div>`;
+    $("#vback").onclick = ()=>route();
+    const done = async (fn,msg,back)=>{ try{ const r=await fn(); toast(msg||"操作成功"); if(back) route(); else vmDetail(id); return r; }catch(e){ toast(e.message,true); } };
+    $("#a_start").onclick = ()=>done(()=>api.startVM(id),"已发送开机指令");
+    $("#a_stop").onclick = ()=>done(()=>api.stopVM(id,false),"已发送关机指令");
+    $("#a_stop_f").onclick = async ()=>{
+      const f = await modal("强制关机",`<p>确定要<b class="bad">强制断电</b>关机吗？</p>`,"强制关机");
+      if(f) done(()=>api.stopVM(id,true),"已发送强制关机指令");
+    };
+    $("#a_restart").onclick = ()=>done(()=>api.restartVM(id),"已发送重启指令");
+    $("#a_renew").onclick = async ()=>{
+      const f = await modal("续费",`<p>为该主机续费一个月 (<b>${fmtMoney(v.price_monthly)}</b>)？费用从可用余额扣除。</p>`,"确认续费");
+      if(f) done(()=>api.renewVM(id),"续费成功");
+    };
+    $("#a_autorenew").onclick = ()=>done(()=>api.autoRenewVM(id,!v.auto_renew), v.auto_renew?"已关闭自动续费":"已开启自动续费");
+    $("#a_remark").onclick = async ()=>{
+      const f = await modal("修改备注", fld("备注", inp("f_remark", v.remark||"")), "保存");
+      if(f) done(()=>api.remarkVM(id, f.querySelector("#f_remark").value), "备注已更新");
+    };
+    $("#a_tags").onclick = async ()=>{
+      const f = await modal("修改标签", fld("标签 (逗号分隔)", inp("f_tags",(v.tags||[]).join(", "))), "保存");
+      if(f){ const t=f.querySelector("#f_tags").value.split(",").map(s=>s.trim()).filter(Boolean); done(()=>api.tagsVM(id,t),"标签已更新"); }
+    };
+    $("#v_showpw").onclick = async ()=>{
+      const f = await modal("重置 Root 密码",
+        fld("新密码 (留空则系统随机生成)", inp("f_pw","","","password"))+
+        `<p class="muted" style="font-size:13px">重置后需要重启主机生效。</p>`,"重置密码");
+      if(!f) return;
+      const pw = f.querySelector("#f_pw").value;
+      try{ const r = await api.resetPw(id, pw||undefined);
+        const npw = (r&&(r.password||r.new_password)) || pw || "(随机密码, 请查看主机详情)";
+        (await modal("密码已重置", `<p>新密码: <code style="font-size:16px">${esc(npw)}</code></p><p class="muted">请妥善保存, 重启主机后生效。</p>`,"关闭"));
+        vmDetail(id);
+      }catch(e){ toast(e.message,true); }
+    };
+    $("#a_reinstall").onclick = async ()=>{
+      const opts = osImgs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||o.id)}</option>`).join("");
+      const f = await modal("重装系统",
+        fld("选择系统", osImgs.length?`<select id="f_os">${opts}</select>`:inp("f_os",v.os_image||"","如 debian-12-x64"))+
+        fld("新 Root 密码 (留空则随机)", inp("f_pw","","","password"))+
+        `<p class="bad" style="font-size:13px">⚠️ 重装会清空硬盘数据, 不可恢复!</p>`,"开始重装");
+      if(!f) return;
+      const img = f.querySelector("#f_os").value, pw = f.querySelector("#f_pw").value;
+      const c = await modal("最后确认",`<p>确定重装为 <b>${esc(img)}</b> 吗？数据将全部丢失。</p>`,"确认重装");
+      if(c) done(()=>api.reinstall(id,img,pw||undefined),"重装指令已发送");
+    };
+    $("#a_push").onclick = async ()=>{
+      const f = await modal("转让主机 (Push)", fld("接收方邮箱或用户 UUID", inp("f_rcpt","","user@example.com"))+
+        `<p class="muted" style="font-size:13px">转让后主机归对方所有。</p>`,"确认转让");
+      if(f) done(()=>api.pushVM(id,f.querySelector("#f_rcpt").value),"转让成功");
+    };
+    $("#a_sell").onclick = async ()=>{
+      const f = await modal("挂到二手市场", fld("售价 (USD)", inp("f_price",String(v.price_monthly||""),"","number")), "上架");
+      if(f) done(()=>api.createListing({vm_id:id, price:Number(f.querySelector("#f_price").value)}),"上架成功");
+    };
+    $("#a_destroy").onclick = async ()=>{
+      let preview="";
+      try{ const p=await api.refundPreview(id); preview=`<p>预计退款: <b class="ok">${fmtMoney(p.refund_amount??p.amount??p)}</b></p>`; }
+      catch(e){ preview=`<p class="muted">退款预览获取失败: ${esc(e.message)}</p>`; }
+      const f = await modal("销毁主机", preview+`<p class="bad">销毁后按剩余时间退款到余额, 主机数据全部丢失, 不可恢复!</p>
+        ${fld("输入 DESTROY 确认", inp("f_cf","","DESTROY"))}`,"销毁");
+      if(f && f.querySelector("#f_cf").value.trim()==="DESTROY") done(()=>api.destroyVM(id),"主机已销毁",true);
+      else if(f) toast("确认文字不正确, 已取消", true);
+    };
+    // 端口转发
+    const loadPf = async ()=>{
+      const box2 = $("#pf_list"); if(!box2) return;
+      try{
+        const d = await api.portFwds(id);
+        const list = d.rules||d.items||d||[];
+        box2.innerHTML = `<table><tr><th>协议</th><th>宿主机端口</th><th>容器端口</th><th>说明</th><th></th></tr>`+
+          (Array.isArray(list)?list:[]).map(r=>`<tr><td>${esc(r.protocol)}</td><td>${r.host_port}</td><td>${r.guest_port}</td><td>${esc(r.description||"")}</td>
+          <td><button class="sm danger" data-del="${r.protocol}:${r.host_port}">删除</button></td></tr>`).join("")+
+          `</table>` || `<div class="empty">暂无转发规则</div>`;
+        box2.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{
+          const [proto,port]=b.dataset.del.split(":");
+          try{ await api.delPortFwd(id,proto,Number(port)); toast("已删除"); loadPf(); }catch(e){ toast(e.message,true); }
+        });
+      }catch(e){ box2.innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+    };
+    $("#pf_add").onclick = async ()=>{
+      const f = await modal("添加端口转发",
+        fld("协议",`<select id="f_proto"><option value="tcp">TCP</option><option value="udp">UDP</option></select>`)+
+        fld("宿主机端口", inp("f_hp","","如 2222","number"))+
+        fld("容器内端口", inp("f_gp","","如 22","number"))+
+        fld("说明 (可选)", inp("f_desc","")),"添加");
+      if(!f) return;
+      try{ await api.addPortFwd(id,{protocol:f.querySelector("#f_proto").value,
+        host_port:Number(f.querySelector("#f_hp").value), guest_port:Number(f.querySelector("#f_gp").value),
+        description:f.querySelector("#f_desc").value||undefined});
+        toast("添加成功"); loadPf();
+      }catch(e){ toast(e.message,true); }
+    };
+    loadPf();
+  }catch(e){ M.innerHTML = `<div class="empty">❌ ${esc(e.message)}<br><span class="backlink" onclick="route()">← 返回</span></div>`; }
+}
+
+/* ================= 🛒 购买 ================= */
+let buyMode = "plans";
+async function tabBuy(M){
+  M.innerHTML = `
+    <div class="toolbar">
+      <button class="sm ${buyMode==="plans"?"":"ghost"}" id="bm_plans">套餐市场</button>
+      <button class="sm ${buyMode==="machines"?"":"ghost"}" id="bm_machines">公开母机</button>
+      <span id="buy_filters"></span>
+    </div>
+    <div id="buy_body"><div class="empty">加载中…</div></div>`;
+  $("#bm_plans").onclick=()=>{buyMode="plans";tabBuy(M);};
+  $("#bm_machines").onclick=()=>{buyMode="machines";tabBuy(M);};
+  if(buyMode==="plans") await buyPlans(M);
+  else await buyMachines(M);
+}
+async function buyPlans(M){
+  const F = $("#buy_filters");
+  F.innerHTML = `<input id="f_region" placeholder="地区 (如 US/HK)" style="width:120px">
+    <input id="f_maxp" placeholder="最高月价 $" type="number" style="width:110px">
+    <select id="f_sort"><option value="">默认排序</option><option value="price_asc">价格从低到高</option><option value="price_desc">价格从高到低</option></select>
+    <button class="sm" id="f_go">筛选</button>`;
+  const load = async ()=>{
+    const B = $("#buy_body"); B.innerHTML = `<div class="empty">加载中…</div>`;
+    try{
+      const p = {};
+      const rg=$("#f_region").value.trim(); if(rg) p.region=rg;
+      const mp=$("#f_maxp").value; if(mp) p.max_price=mp;
+      const so=$("#f_sort").value; if(so) p.sort=so;
+      const d = await api.plans(p);
+      const list = d.plans||d.items||d||[];
+      B.innerHTML = (Array.isArray(list)?list:[]).map(pl=>`
+        <div class="card" style="cursor:pointer" data-plan="${pl.id}">
+          <h3>${esc(pl.name||"套餐")}</h3>
+          <div class="row"><span class="muted">配置</span><b>${pl.cpu}C / ${(pl.ram_mb/1024).toFixed(1)}G / ${pl.disk_gb}G / ${pl.bandwidth_mbps}Mbps</b></div>
+          <div class="row"><span class="muted">月流量</span><b>${pl.monthly_traffic_gb}G</b></div>
+          <div class="row"><span class="muted">月价</span><b class="ok" style="font-size:17px">${fmtMoney(pl.price_monthly)}</b></div>
+          <div class="row"><span class="muted">库存</span><b>${pl.max_quantity!=null?(pl.max_quantity-(pl.sold_quantity||0))+" / "+pl.max_quantity:"-"}</b></div>
+          ${pl.description?`<div class="muted" style="font-size:13px;margin-top:6px">${esc(pl.description).slice(0,120)}</div>`:""}
+        </div>`).join("");
+      B.innerHTML = `<div class="cards">${B.innerHTML}</div>` || "";
+      if(!(Array.isArray(list)?list:[]).length) B.innerHTML = `<div class="empty">没有符合条件的套餐</div>`;
+      else B.querySelectorAll("[data-plan]").forEach(c=>c.onclick=()=>planBuyFlow(c.dataset.plan));
+    }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+  };
+  $("#f_go").onclick = load;
+  await load();
+}
+async function planBuyFlow(planId){
+  if(!S.key){ toast("请先填写 API 密钥", true); return; }
+  let pl;
+  try{ pl = await api.plan(planId); }catch(e){ toast(e.message,true); return; }
+  // 取母机公开信息拿系统镜像列表
+  let osImgs = [];
+  if(pl.machine_id){ try{ const m = await api.publicMachine(pl.machine_id); osImgs = m.os_images||[]; }catch(e){} }
+  const opts = osImgs.map(o=>`<option value="${esc(o.id)}">${esc(o.name||o.id)}</option>`).join("");
+  const f = await modal(`购买: ${pl.name||""}`,
+    `<p class="muted" style="margin-bottom:10px">月价 <b class="ok">${fmtMoney(pl.price_monthly)}</b>${pl.allow_full_refund?' · <span class="ok">支持全额退款</span>':""}</p>`+
+    fld("系统镜像", osImgs.length?`<select id="b_os">${opts}</select>`:inp("b_os","","如 debian-12-x64"))+
+    fld("优惠码 (可选)", inp("b_promo","",""))+
+    `<div id="promo_rst" style="margin-bottom:10px"></div>`+
+    fld("备注 (可选)", inp("b_remark","",""))+
+    `<label style="font-size:14px"><input type="checkbox" id="b_auto" style="width:auto"> 开启自动续费</label>`,
+    "确认下单");
+  if(!f) return;
+  const code = f.querySelector("#b_promo").value.trim();
+  if(code){
+    try{
+      const pv = await api.promoPreview(code, planId, pl.price_monthly);
+      const okc = await modal("优惠码预览",
+        `<pre class="dump">${esc(JSON.stringify(pv,null,2))}</pre><p>是否继续下单？</p>`,"继续下单");
+      if(!okc) return;
+    }catch(e){ const c2 = await modal("优惠码无效",`<p class="bad">${esc(e.message)}</p><p>是否不使用优惠码继续下单？</p>`,"继续下单"); if(!c2) return; }
+  }
+  try{
+    const vm = await api.buyVM({plan_id:planId,
+      os_image:f.querySelector("#b_os").value||undefined,
+      promo_code:code||undefined,
+      remark:f.querySelector("#b_remark").value||undefined,
+      auto_renew:f.querySelector("#b_auto").checked});
+    toast("下单成功!");
+    curTab="vms"; renderTabs(); route();
+  }catch(e){ toast("下单失败: "+e.message, true); }
+}
+async function buyMachines(M){
+  $("#buy_filters").innerHTML = "";
+  const B = $("#buy_body"); B.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const list = await api.publicMachines();
+    const arr = Array.isArray(list)?list:(list.machines||[]);
+    B.innerHTML = `<div class="cards">`+arr.map(m=>`
+      <div class="card" style="cursor:pointer" data-m="${m.id}">
+        <h3>${esc(m.name||"")} ${statusPill(m.status)}</h3>
+        <div class="row"><span class="muted">地区</span><b>${esc(m.region_zh||m.region||"")} ${esc(m.city||"")}</b></div>
+        <div class="row"><span class="muted">类型</span><b>${esc(m.vm_type||"-")}</b></div>
+      </div>`).join("")+`</div>`;
+    B.querySelectorAll("[data-m]").forEach(c=>c.onclick=()=>publicMachineDetail(c.dataset.m));
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function publicMachineDetail(id){
+  const M = $("#main");
+  M.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const m = await api.publicMachine(id);
+    M.innerHTML = `<span class="backlink" id="bk">← 返回</span>
+      <div class="card"><h3>${esc(m.name||"")} ${statusPill(m.status)}</h3>
+      <dl class="kv">
+        <dt>地区</dt><dd>${esc(m.region_zh||m.region||"")} ${esc(m.city||"")} ${esc(m.region_name||"")}</dd>
+        <dt>类型</dt><dd>${esc(m.vm_type||"-")}</dd>
+        <dt>描述</dt><dd>${esc(m.description||"-")}</dd>
+        <dt>标签</dt><dd>${(m.tags||[]).map(t=>`<span class="badge">${esc(t)}</span>`).join(" ")||"-"}</dd>
+      </dl>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="sm" id="m_speed">测速 (ping)</button>
+        <button class="sm okb" id="m_plans">查看该母机套餐</button>
+      </div><div id="m_speed_rst"></div></div>`;
+    $("#bk").onclick=()=>route();
+    $("#m_speed").onclick = async ()=>{
+      const f = await modal("ICMP 测速", fld("国家代码 (逗号分隔, 最多10个)", inp("f_cc","US,DE,SG,JP,HK","如 US,DE,SG")), "开始测速");
+      if(!f) return;
+      const codes = f.querySelector("#f_cc").value.split(",").map(s=>s.trim().toUpperCase()).filter(Boolean).slice(0,10);
+      $("#m_speed_rst").innerHTML = `<span class="muted">测速中…</span>`;
+      try{ const r = await api.testSpeed(id, codes);
+        $("#m_speed_rst").innerHTML = `<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`;
+      }catch(e){ $("#m_speed_rst").innerHTML = `<span class="bad">${esc(e.message)}</span>`; }
+    };
+    $("#m_plans").onclick = async ()=>{
+      const B = $("#m_speed_rst"); B.innerHTML = `<span class="muted">加载中…</span>`;
+      try{
+        const d = await api.plans({machine_id:id});
+        const list = d.plans||d.items||d||[];
+        B.innerHTML = `<table><tr><th>套餐</th><th>配置</th><th>月价</th><th></th></tr>`+
+          (Array.isArray(list)?list:[]).map(pl=>`<tr><td>${esc(pl.name)}</td>
+          <td>${pl.cpu}C/${(pl.ram_mb/1024).toFixed(1)}G/${pl.disk_gb}G</td><td>${fmtMoney(pl.price_monthly)}</td>
+          <td><button class="sm okb" data-buy="${pl.id}">购买</button></td></tr>`).join("")+`</table>`;
+        B.querySelectorAll("[data-buy]").forEach(b=>b.onclick=()=>planBuyFlow(b.dataset.buy));
+      }catch(e){ B.innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+    };
+  }catch(e){ M.innerHTML=`<div class="empty">❌ ${esc(e.message)}<br><span class="backlink" onclick="route()">← 返回</span></div>`; }
+}
+
+/* ================= 🔁 二手市场 ================= */
+let mkPage = 1, mkMine = false;
+async function tabMarket(M){
+  M.innerHTML = `
+    <div class="toolbar">
+      <button class="sm ${!mkMine?"":"ghost"}" id="mk_all">市场挂售</button>
+      <button class="sm ${mkMine?"":"ghost"}" id="mk_my">我的挂售</button>
+      <input id="mk_region" placeholder="地区" style="width:100px">
+      <input id="mk_maxp" placeholder="最高价 $" type="number" style="width:100px">
+      <button class="sm" id="mk_go">筛选</button>
+    </div>
+    <div id="mk_body"><div class="empty">加载中…</div></div>
+    <div class="pager" id="mk_pager"></div>`;
+  $("#mk_all").onclick=()=>{mkMine=false;mkPage=1;tabMarket(M);};
+  $("#mk_my").onclick=()=>{mkMine=true;mkPage=1;tabMarket(M);};
+  $("#mk_go").onclick=()=>{mkPage=1;loadMarket();};
+  await loadMarket();
+}
+async function loadMarket(){
+  const B = $("#mk_body"); if(!B) return;
+  B.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    let list, total=0;
+    if(mkMine){
+      if(!S.key){ B.innerHTML=needAuth(); return; }
+      const d = await api.myListings({page:mkPage,page_size:20});
+      list = d.listings||d.items||[]; total = d.total||list.length;
+    }else{
+      const p = {page:mkPage,page_size:20};
+      const rg=$("#mk_region").value.trim(); if(rg) p.region=rg;
+      const mp=$("#mk_maxp").value; if(mp) p.max_price=mp;
+      const d = await api.listings(p);
+      list = d.listings||d.items||[]; total = d.total||list.length;
+    }
+    const cards = (list||[]).map(l=>`
+      <div class="card">
+        <h3>${fmtMoney(l.price)} <span class="muted" style="font-size:13px">/月</span> ${statusPill(l.status)}</h3>
+        <div class="row"><span class="muted">配置</span><b>${l.cpu}C / ${(l.ram_mb/1024).toFixed(1)}G / ${l.disk_gb}G</b></div>
+        <div class="row"><span class="muted">地区</span><b>${esc(l.region||"-")}</b></div>
+        <div class="row"><span class="muted">到期</span><b>${fmtTime(l.expires_at)}</b></div>
+        <div class="toolbar" style="margin:8px 0 0">
+          ${mkMine?`<button class="sm danger" data-cancel="${l.id}">下架</button>`
+                  :`<button class="sm okb" data-buyl="${l.id}">购买</button>`}
+        </div>
+      </div>`).join("");
+    B.innerHTML = cards ? `<div class="cards">${cards}</div>` : `<div class="empty">暂无挂售</div>`;
+    B.querySelectorAll("[data-buyl]").forEach(b=>b.onclick=async()=>{
+      if(!S.key){ toast("请先填写 API 密钥",true); return; }
+      const f = await modal("购买二手主机",`<p>确认以 <b class="ok">${esc(b.closest(".card").querySelector("h3").textContent)}</b> 购买该主机吗？</p>`,"确认购买");
+      if(!f) return;
+      try{ await api.buyListing(b.dataset.buyl); toast("购买成功!"); curTab="vms"; renderTabs(); route(); }
+      catch(e){ toast(e.message,true); }
+    });
+    B.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=async()=>{
+      const f = await modal("下架",`<p>确定下架该挂售吗？</p>`,"下架");
+      if(!f) return;
+      try{ await api.cancelListing(b.dataset.cancel); toast("已下架"); loadMarket(); }catch(e){ toast(e.message,true); }
+    });
+    const pages = Math.max(1, Math.ceil(total/20));
+    $("#mk_pager").innerHTML = total?`<button class="sm ghost" ${mkPage<=1?"disabled":""} id="kp">上一页</button>
+      <span class="muted">${mkPage} / ${pages} (共 ${total})</span>
+      <button class="sm ghost" ${mkPage>=pages?"disabled":""} id="kn">下一页</button>`:"";
+    const p=$("#kp"), n=$("#kn");
+    if(p) p.onclick=()=>{mkPage--;loadMarket();};
+    if(n) n.onclick=()=>{mkPage++;loadMarket();};
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+
+/* ================= 🌐 IP资源 ================= */
+async function tabIPs(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `
+    <div class="toolbar"><button class="sm okb" id="ip_rent">＋ 租用新 IP</button>
+      <button class="sm ghost" id="ip_reload">刷新</button></div>
+    <div class="cards" id="ip_cards"></div>`;
+  $("#ip_reload").onclick=()=>route();
+  $("#ip_rent").onclick=rentIPFlow;
+  await loadIPs();
+}
+async function loadIPs(){
+  const box = $("#ip_cards"); if(!box) return;
+  box.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.ipResources({page:1,page_size:50});
+    const list = d.items||d.ip_resources||d||[];
+    box.innerHTML = (Array.isArray(list)?list:[]).map(r=>`
+      <div class="card" style="cursor:pointer" data-ip="${r.id}">
+        <h3>${esc(r.remark||r.allocated_ip||"IP资源")} ${statusPill(r.status)}</h3>
+        <div class="row"><span class="muted">分配 IP</span><b>${esc(r.allocated_ip||"")}${r.allocated_prefix?"/"+r.allocated_prefix:""}</b></div>
+        <div class="row"><span class="muted">绑定主机</span><b>${r.vm_id?"已绑定":"未绑定"}</b></div>
+        <div class="row"><span class="muted">到期</span><b>${fmtTime(r.expires_at)} (${daysLeft(r.expires_at)})</b></div>
+        <div class="row"><span class="muted">月价</span><b>${fmtMoney(r.price_monthly)}</b></div>
+        <div class="row"><span class="muted">自动续费</span><b>${r.auto_renew?'<span class="ok">开</span>':'<span class="muted">关</span>'}</b></div>
+      </div>`).join("") || `<div class="empty">暂无 IP 资源</div>`;
+    box.querySelectorAll("[data-ip]").forEach(c=>c.onclick=()=>ipDetail(c.dataset.ip));
+  }catch(e){ box.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function rentIPFlow(){
+  let pools;
+  try{ pools = await api.ipPools(); }catch(e){ toast(e.message,true); return; }
+  const arr = Array.isArray(pools)?pools:(pools.pools||[]);
+  if(!arr.length){ toast("暂无可租用的 IP 池",true); return; }
+  const opts = arr.map(p=>`<option value="${p.id}">${esc(p.name||p.id)} (${esc(p.ip_type||"")}) ${fmtMoney(p.price_monthly)}/月${p.total_units!=null?` 剩余${p.total_units-(p.used_units||0)}`:""}</option>`).join("");
+  const f = await modal("租用 IP 资源",
+    fld("选择 IP 池",`<select id="r_pool">${opts}</select>`)+
+    `<label style="font-size:14px"><input type="checkbox" id="r_auto" style="width:auto"> 开启自动续费</label>`,"确认租用");
+  if(!f) return;
+  try{ await api.rentIP({ip_pool_id:f.querySelector("#r_pool").value, auto_renew:f.querySelector("#r_auto").checked});
+    toast("租用成功!"); route();
+  }catch(e){ toast(e.message,true); }
+}
+async function ipDetail(id){
+  const M = $("#main");
+  M.innerHTML = `<div class="empty">加载中…</div>`;
+  try{
+    const r = await api.ipResource(id);
+    M.innerHTML = `<span class="backlink" id="bk">← 返回列表</span>
+      <div class="card"><h3>${esc(r.remark||"IP资源")} ${statusPill(r.status)}</h3>
+      <dl class="kv">
+        <dt>分配 IP</dt><dd><b>${esc(r.allocated_ip||"")}${r.allocated_prefix?"/"+r.allocated_prefix:""}</b></dd>
+        <dt>WG 客户端地址</dt><dd>${esc(r.wg_client_address||"-")}</dd>
+        <dt>WG 公钥</dt><dd><code style="font-size:12px">${esc(r.wg_client_public_key||"-")}</code></dd>
+        <dt>绑定主机</dt><dd>${r.vm_id?`<code style="font-size:12px">${esc(r.vm_id)}</code>`:'<span class="muted">未绑定</span>'}</dd>
+        <dt>到期</dt><dd>${fmtTime(r.expires_at)} (${daysLeft(r.expires_at)})</dd>
+        <dt>自动续费</dt><dd>${r.auto_renew?'<span class="ok">开</span>':'<span class="muted">关</span>'}</dd>
+        <dt>月价</dt><dd>${fmtMoney(r.price_monthly)}</dd>
+      </dl>
+      <div class="toolbar" style="margin-top:12px">
+        <button class="sm okb" id="i_dl">下载 WireGuard 配置</button>
+        <button class="sm" id="i_renew">续费</button>
+        <button class="sm ghost" id="i_auto">${r.auto_renew?"关闭自动续费":"开启自动续费"}</button>
+        <button class="sm ghost" id="i_remark">改备注</button>
+        ${r.vm_id?`<button class="sm warnb" id="i_unbind">解绑主机</button>`:`<button class="sm" id="i_bind">绑定到主机</button>`}
+        <button class="sm danger" id="i_resetkey">重置 WireGuard 密钥</button>
+      </div></div>`;
+    $("#bk").onclick=()=>route();
+    const done = async (fn,msg)=>{ try{ await fn(); toast(msg||"操作成功"); ipDetail(id); }catch(e){ toast(e.message,true); } };
+    $("#i_renew").onclick = ()=>done(()=>api.renewIP(id),"续费成功");
+    $("#i_auto").onclick = ()=>done(()=>api.autoRenewIP(id,!r.auto_renew),"已更新");
+    $("#i_remark").onclick = async ()=>{
+      const f = await modal("修改备注", fld("备注", inp("f_r", r.remark||"")), "保存");
+      if(f) done(()=>api.remarkIP(id, f.querySelector("#f_r").value),"备注已更新");
+    };
+    const iBind=$("#i_bind"), iUnbind=$("#i_unbind");
+    if(iBind) iBind.onclick = async ()=>{
+      let vms=[];
+      try{ const d=await api.vms({page:1,page_size:100}); vms=d.vms||[]; }catch(e){ toast(e.message,true); return; }
+      const opts = vms.map(v=>`<option value="${v.id}">${esc(v.remark||v.ip||v.id)} (${esc(v.ip||"")})</option>`).join("");
+      const f = await modal("绑定到主机", fld("选择云主机",`<select id="f_vm">${opts}</select>`), "绑定");
+      if(f) done(()=>api.bindIP(id, f.querySelector("#f_vm").value),"绑定成功");
+    };
+    if(iUnbind) iUnbind.onclick = async ()=>{
+      const f = await modal("解绑",`<p>确定解绑该 IP 与主机的关联吗？</p>`,"解绑");
+      if(f) done(()=>api.unbindIP(id),"已解绑");
+    };
+    $("#i_resetkey").onclick = async ()=>{
+      const f = await modal("重置密钥",`<p class="bad">重置 WireGuard 密钥后旧配置立即失效, 需重新下载客户端配置!</p>`,"确认重置");
+      if(f) done(()=>api.resetIPKey(id),"密钥已重置, 请重新下载配置");
+    };
+    $("#i_dl").onclick = async ()=>{
+      try{
+        const res = await api.ipClientConfig(id);
+        const ct = res.headers.get("content-type")||"";
+        let text, filename = `wg-${id.slice(0,8)}.conf`;
+        if(ct.includes("json")){
+          const j = await res.json();
+          if(j.code!==0) throw new Error(j.msg||("错误码 "+j.code));
+          const d = j.data||{};
+          text = d.config||d.client_config||JSON.stringify(d,null,2);
+        }else{
+          text = await res.text();
+          const cd = res.headers.get("content-disposition")||"";
+          const m = cd.match(/filename="?([^";]+)"?/); if(m) filename=m[1];
+        }
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([text],{type:"text/plain"}));
+        a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+        toast("配置已下载");
+      }catch(e){ toast("下载失败: "+e.message, true); }
+    };
+  }catch(e){ M.innerHTML=`<div class="empty">❌ ${esc(e.message)}<br><span class="backlink" onclick="route()">← 返回</span></div>`; }
+}
+
+/* ================= 💰 账单 ================= */
+let billTab = "tx";
+async function tabBill(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `
+    <div class="toolbar">
+      ${[["tx","💸 资金流水"],["orders","🧾 订单"],["pays","💳 充值记录"],["recharge","➕ 充值"],["wd","🏧 提现"]]
+        .map(([k,n])=>`<button class="sm ${billTab===k?"":"ghost"}" data-bt="${k}">${n}</button>`).join("")}
+    </div>
+    <div id="bill_body"><div class="empty">加载中…</div></div>
+    <div class="pager" id="bill_pager"></div>`;
+  M.querySelectorAll("[data-bt]").forEach(b=>b.onclick=()=>{billTab=b.dataset.bt;tabBill(M);});
+  if(billTab==="tx") await billTx(1);
+  else if(billTab==="orders") await billOrders(1);
+  else if(billTab==="pays") await billPays(1);
+  else if(billTab==="recharge") billRecharge();
+  else if(billTab==="wd") await billWd();
+}
+function pager(el, page, total, per, go){
+  const pages = Math.max(1, Math.ceil(total/per));
+  el.innerHTML = total?`<button class="sm ghost" ${page<=1?"disabled":""} id="bp">上一页</button>
+    <span class="muted">${page} / ${pages} (共 ${total})</span>
+    <button class="sm ghost" ${page>=pages?"disabled":""} id="bn">下一页</button>`:"";
+  const p=$("#bp"), n=$("#bn");
+  if(p) p.onclick=()=>go(page-1);
+  if(n) n.onclick=()=>go(page+1);
+}
+async function billTx(page){
+  const B=$("#bill_body"); B.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.transactions({page,page_size:20});
+    const list = d.transactions||d.items||[];
+    B.innerHTML = `<table><tr><th>时间</th><th>类型</th><th>金额</th><th>余额类型</th><th>余额</th><th>备注</th></tr>`+
+      list.map(t=>`<tr><td style="white-space:nowrap">${fmtTime(t.created_at)}</td><td>${esc(t.type)}</td>
+      <td class="${Number(t.amount)>=0?"ok":"bad"}">${Number(t.amount)>=0?"+":""}${fmtMoney(t.amount)}</td>
+      <td>${esc(t.balance_type||"")}</td><td>${fmtMoney(t.balance_after)}</td><td>${esc(t.note||"")}</td></tr>`).join("")+`</table>`
+      || `<div class="empty">暂无流水</div>`;
+    pager($("#bill_pager"), d.page||page, d.total||list.length, 20, billTx);
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function billOrders(page){
+  const B=$("#bill_body"); B.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.orders({page,page_size:20});
+    const list = d.orders||d.items||[];
+    B.innerHTML = `<table><tr><th>时间</th><th>类型</th><th>金额</th><th>详情</th></tr>`+
+      list.map(o=>`<tr><td style="white-space:nowrap">${fmtTime(o.created_at)}</td><td>${esc(o.type)}</td>
+      <td>${fmtMoney(o.amount)}</td><td><button class="sm ghost" data-odetail='${esc(JSON.stringify(o))}'>详情</button></td></tr>`).join("")+`</table>`
+      || `<div class="empty">暂无订单</div>`;
+    B.querySelectorAll("[data-odetail]").forEach(b=>b.onclick=()=>{
+      modal("订单详情", `<pre class="dump">${esc(JSON.stringify(JSON.parse(b.dataset.odetail),null,2))}</pre>`, "关闭"); });
+    pager($("#bill_pager"), d.page||page, d.total||list.length, 20, billOrders);
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function billPays(page){
+  const B=$("#bill_body"); B.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.payRecords({page,page_size:20});
+    const list = d.records||d.items||[];
+    B.innerHTML = `<table><tr><th>时间</th><th>网关</th><th>金额</th><th>状态</th><th></th></tr>`+
+      list.map(r=>`<tr><td style="white-space:nowrap">${fmtTime(r.created_at)}</td><td>${esc(r.gateway||"")}</td>
+      <td>${fmtMoney(r.amount)}</td><td>${statusPill(r.status)}</td>
+      <td><button class="sm ghost" data-pr="${r.id}">详情</button></td></tr>`).join("")+`</table>`
+      || `<div class="empty">暂无充值记录</div>`;
+    B.querySelectorAll("[data-pr]").forEach(b=>b.onclick=async()=>{
+      try{ const r = await api.payRecord(b.dataset.pr);
+        modal("充值记录", `<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`, "关闭");
+      }catch(e){ toast(e.message,true); }
+    });
+    pager($("#bill_pager"), d.page||page, d.total||list.length, 20, billPays);
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+function billRecharge(){
+  const B=$("#bill_body"); $("#bill_pager").innerHTML="";
+  B.innerHTML = `<div class="card" style="max-width:520px"><h3>➕ 余额充值</h3>
+    ${fld("金额 (USD, 最低 $1; 低于 $10 收 $0.30 手续费)", inp("rc_amt","10","","number"))}
+    ${fld("支付网关", `<select id="rc_gw"><option value="stripe">Stripe (卡/Alipay)</option><option value="hupijiao">虎皮椒 (微信/支付宝)</option><option value="cryptomus">Cryptomus (加密货币)</option></select>`)}
+    <div id="rc_paymethod" style="margin-bottom:10px"></div>
+    <button id="rc_go">生成支付订单</button> <span class="muted" id="rc_rst"></span></div>`;
+  $("#rc_gw").onchange = ()=>{
+    $("#rc_paymethod").innerHTML = $("#rc_gw").value==="stripe"
+      ? fld("Stripe 方式",`<select id="rc_pm"><option value="">默认</option><option value="card">银行卡</option><option value="alipay">支付宝</option></select>`):"";
+  };
+  $("#rc_gw").onchange();
+  $("#rc_go").onclick = async ()=>{
+    const amt = Number($("#rc_amt").value), gw = $("#rc_gw").value;
+    if(!(amt>=1)){ toast("金额最低 $1", true); return; }
+    const pm = $("#rc_pm"); const body = {amount:amt};
+    if(pm && pm.value) body.payment_method = pm.value;
+    $("#rc_rst").textContent = "生成中…";
+    try{
+      const r = await api.payInit(gw, body);
+      $("#rc_rst").innerHTML = "";
+      const url = r.checkout_url||r.pay_url||r.url;
+      modal("支付订单已创建",
+        `<dl class="kv"><dt>实付</dt><dd><b class="ok">${fmtMoney(r.total_usd??amt)}</b>${r.fee_usd?` (含手续费 ${fmtMoney(r.fee_usd)})`:""}</dd>
+        <dt>订单号</dt><dd><code style="font-size:12px">${esc(r.payment_record_id||"")}</code></dd></dl>
+        ${url?`<p style="margin-top:10px"><a href="${esc(url)}" target="_blank" rel="noopener">👉 点击前往支付页面</a></p><p class="muted" style="font-size:12px;word-break:break-all">${esc(url)}</p>`:`<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`}`,
+        "关闭");
+    }catch(e){ $("#rc_rst").innerHTML=""; toast(e.message,true); }
+  };
+}
+async function billWd(){
+  const B=$("#bill_body"); $("#bill_pager").innerHTML="";
+  B.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const info = await api.wdInfo();
+    B.innerHTML = `<div class="card" style="max-width:560px"><h3>🏧 提现</h3>
+      <pre class="dump">${esc(JSON.stringify(info,null,2))}</pre>
+      <div class="toolbar" style="margin-top:10px">
+        ${fld("金额 (0 = 全部可提)", inp("wd_amt","0","","number"))}
+        ${fld("方式", `<select id="wd_type"><option value="transfer">转到可用余额 (佣金减半)</option><option value="payout">提现到外部</option></select>`)}
+      </div>
+      <button id="wd_go">提交提现申请</button></div>`;
+    $("#wd_go").onclick = async ()=>{
+      const f = await modal("确认提现",`<p>金额 <b>${esc($("#wd_amt").value)}</b>，方式 <b>${esc($("#wd_type").selectedOptions[0].text)}</b>，确定提交吗？</p>`,"提交");
+      if(!f) return;
+      try{ const r = await api.withdraw({amount:Number($("#wd_amt").value), type:$("#wd_type").value});
+        modal("已提交",`<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`,"关闭");
+      }catch(e){ toast(e.message,true); }
+    };
+  }catch(e){ B.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+
+/* ================= 🎫 工单 ================= */
+let tkStatus = "";
+async function tabTickets(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `
+    <div class="toolbar">
+      <button class="sm okb" id="tk_new">＋ 新建工单</button>
+      <select id="tk_f"><option value="">全部状态</option><option>open</option><option>pending</option><option>resolved</option><option>closed</option></select>
+      <button class="sm" id="tk_go">筛选</button>
+    </div>
+    <div class="cards" id="tk_cards"></div>`;
+  $("#tk_f").value = tkStatus;
+  $("#tk_go").onclick=()=>{tkStatus=$("#tk_f").value;loadTickets();};
+  $("#tk_new").onclick=newTicketFlow;
+  await loadTickets();
+}
+async function loadTickets(){
+  const box=$("#tk_cards"); if(!box) return;
+  box.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.tickets({page:1,page_size:50,status:tkStatus||undefined});
+    const list = d.tickets||d.items||[];
+    box.innerHTML = list.map(t=>`
+      <div class="card" style="cursor:pointer" data-tk="${t.id}">
+        <h3>${esc(t.title||"(无标题)")} ${statusPill(t.status)}</h3>
+        <div class="row"><span class="muted">类型</span><b>${esc(t.type||"-")}</b></div>
+        <div class="row"><span class="muted">创建</span><b>${fmtTime(t.created_at)}</b></div>
+      </div>`).join("") || `<div class="empty">暂无工单</div>`;
+    box.querySelectorAll("[data-tk]").forEach(c=>c.onclick=()=>ticketDetail(c.dataset.tk));
+  }catch(e){ box.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function newTicketFlow(){
+  const f = await modal("新建工单",
+    fld("标题", inp("t_title",""))+
+    fld("内容", `<textarea id="t_content"></textarea>`)+
+    fld("关联母机 ID (可选)", inp("t_mid","","UUID"))+
+    fld("关联云主机 ID (可选)", inp("t_vid","","UUID")),"提交工单");
+  if(!f) return;
+  const title=f.querySelector("#t_title").value.trim(), content=f.querySelector("#t_content").value.trim();
+  if(!title||!content){ toast("标题和内容必填",true); return; }
+  const body={title,content};
+  const mid=f.querySelector("#t_mid").value.trim(); if(mid) body.machine_id=mid;
+  const vid=f.querySelector("#t_vid").value.trim(); if(vid) body.vm_id=vid;
+  try{ await api.createTicket(body); toast("工单已创建"); loadTickets(); }catch(e){ toast(e.message,true); }
+}
+async function ticketDetail(id){
+  const M=$("#main");
+  M.innerHTML=`<div class="empty">加载中…</div>`;
+  const render = async ()=>{
+    try{
+      const t = await api.ticket(id);
+      const msgs = t.messages||t.replies||[];
+      M.innerHTML = `<span class="backlink" id="bk">← 返回列表</span>
+        <div class="card" style="margin-bottom:14px"><h3>${esc(t.title||"")} ${statusPill(t.status)}</h3>
+          <div class="row"><span class="muted">类型</span><b>${esc(t.type||"-")}</b></div>
+          <div class="row"><span class="muted">创建</span><b>${fmtTime(t.created_at)}</b></div>
+          ${t.content?`<div style="margin-top:8px">${esc(t.content)}</div>`:""}
+          <div class="toolbar" style="margin-top:10px">
+            ${t.status!=="closed"?`<button class="sm warnb" id="tk_close">关闭工单</button>`:`<button class="sm okb" id="tk_reopen">重新打开</button>`}
+          </div></div>
+        <div class="card"><h3>💬 对话</h3><div id="tk_msgs"></div>
+          ${t.status!=="closed"?`<div style="margin-top:10px"><textarea id="tk_reply" placeholder="输入回复…"></textarea>
+          <div style="margin-top:8px"><button id="tk_send">发送回复</button></div></div>`:""}
+        </div>`;
+      $("#bk").onclick=()=>route();
+      $("#tk_msgs").innerHTML = (Array.isArray(msgs)?msgs:[]).map(m=>`
+        <div style="border-left:3px solid var(--line);padding:6px 10px;margin-bottom:8px">
+          <div class="muted" style="font-size:12px">${esc(m.author||m.role||m.sender||"")} · ${fmtTime(m.created_at)}</div>
+          <div>${esc(m.content||m.message||"")}</div></div>`).join("") || `<span class="muted">暂无消息</span>`;
+      const c=$("#tk_close"), ro=$("#tk_reopen"), s=$("#tk_send");
+      if(c) c.onclick=async()=>{ const f=await modal("关闭工单","<p>确定关闭该工单吗？</p>","关闭"); if(f){ try{await api.closeTicket(id);toast("已关闭");render();}catch(e){toast(e.message,true);} } };
+      if(ro) ro.onclick=async()=>{ try{await api.reopenTicket(id);toast("已重新打开");render();}catch(e){toast(e.message,true);} };
+      if(s) s.onclick=async()=>{ const v=$("#tk_reply").value.trim(); if(!v){toast("回复内容不能为空",true);return;}
+        try{ await api.replyTicket(id,v); toast("已发送"); render(); }catch(e){ toast(e.message,true); } };
+    }catch(e){ M.innerHTML=`<div class="empty">❌ ${esc(e.message)}<br><span class="backlink" onclick="route()">← 返回</span></div>`; }
+  };
+  await render();
+}
+
+/* ================= 🏭 机器主 ================= */
+async function tabOwner(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `
+    <div class="toolbar">
+      <button class="sm okb" id="mc_reg">＋ 接入新母机</button>
+      <button class="sm ghost" id="mc_blocked">黑名单</button>
+      <button class="sm ghost" id="mc_reload">刷新</button>
+    </div>
+    <div class="cards" id="mc_cards"></div>`;
+  $("#mc_reload").onclick=()=>route();
+  $("#mc_blocked").onclick=blockedUsersView;
+  $("#mc_reg").onclick=async()=>{
+    const f = await modal("接入新母机",
+      fld("母机名称 *", inp("m_name",""))+
+      fld("描述", inp("m_desc",""))+
+      fld("标签 (逗号分隔)", inp("m_tags",""))+
+      `<p class="muted" style="font-size:13px">提交后会返回 Agent 安装 Token, 请按提示在母机上安装 Agent。</p>`,"注册");
+    if(!f) return;
+    const name=f.querySelector("#m_name").value.trim();
+    if(!name){ toast("名称必填",true); return; }
+    try{
+      const r = await api.registerMachine({name,
+        description:f.querySelector("#m_desc").value||undefined,
+        tags:f.querySelector("#m_tags").value.split(",").map(s=>s.trim()).filter(Boolean)||undefined});
+      modal("母机已注册",`<p>请保存好 Agent Token (仅显示一次):</p>
+        <pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`,"关闭");
+      route();
+    }catch(e){ toast(e.message,true); }
+  };
+  await loadMachines();
+}
+async function loadMachines(){
+  const box=$("#mc_cards"); if(!box) return;
+  box.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const d = await api.machines();
+    const list = d.machines||d.items||d||[];
+    box.innerHTML = (Array.isArray(list)?list:[]).map(m=>`
+      <div class="card" style="cursor:pointer" data-mc="${m.id}">
+        <h3>${esc(m.name||"")} ${statusPill(m.status)}</h3>
+        <div class="row"><span class="muted">地区</span><b>${esc(m.region_zh||m.region||"-")}</b></div>
+        <div class="row"><span class="muted">在线小鸡</span><b>${m.online_vms??m.vm_count??"-"}</b></div>
+      </div>`).join("") || `<div class="empty">名下暂无母机</div>`;
+    box.querySelectorAll("[data-mc]").forEach(c=>c.onclick=()=>machineDetail(c.dataset.mc));
+  }catch(e){ box.innerHTML=`<div class="empty">❌ ${esc(e.message)}</div>`; }
+}
+async function machineDetail(id){
+  const M=$("#main");
+  M.innerHTML=`<div class="empty">加载中…</div>`;
+  try{
+    const m = await api.machine(id);
+    M.innerHTML = `<span class="backlink" id="bk">← 返回列表</span>
+      <div class="card" style="margin-bottom:14px"><h3>${esc(m.name||"")} ${statusPill(m.status)}</h3>
+        <dl class="kv">
+          <dt>母机 ID</dt><dd><code style="font-size:12px">${esc(m.id)}</code></dd>
+          <dt>Agent Token</dt><dd><code style="font-size:12px">${esc(m.agent_token||m.token||"(不显示)")}</code>
+            <button class="sm warnb" id="mc_rotate">轮换 Token</button></dd>
+          <dt>地区</dt><dd>${esc(m.region_zh||m.region||"-")}</dd>
+          <dt>描述</dt><dd>${esc(m.description||"-")}</dd>
+        </dl>
+        <div class="toolbar" style="margin-top:12px">
+          <button class="sm ghost" id="mc_edit">编辑</button>
+          <button class="sm" id="mc_notify">通知买家</button>
+          <button class="sm danger" id="mc_del">删除母机</button>
+        </div></div>
+      <div class="toolbar">
+        <button class="sm" data-sec="vms">VM 列表</button>
+        <button class="sm" data-sec="plans">套餐管理</button>
+        <button class="sm" data-sec="promos">优惠码</button>
+      </div>
+      <div id="mc_sec"></div>`;
+    $("#bk").onclick=()=>route();
+    $("#mc_rotate").onclick=async()=>{
+      const f=await modal("轮换 Token","<p class='bad'>轮换后旧 Token 立即失效, 需重新部署 Agent!</p>","确认轮换");
+      if(!f) return;
+      try{ const r=await api.rotateToken(id);
+        modal("新 Token",`<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>`,"关闭"); machineDetail(id);
+      }catch(e){ toast(e.message,true); }
+    };
+    $("#mc_edit").onclick=async()=>{
+      const f=await modal("编辑母机", fld("名称",inp("e_name",m.name||""))+fld("描述",inp("e_desc",m.description||"")), "保存");
+      if(!f) return;
+      try{ await api.updateMachine(id,{name:f.querySelector("#e_name").value, description:f.querySelector("#e_desc").value});
+        toast("已保存"); machineDetail(id); }catch(e){ toast(e.message,true); }
+    };
+    $("#mc_del").onclick=async()=>{
+      const f=await modal("删除母机",`<p class="bad">确定删除该母机吗？其下 VM/套餐将不可用!</p>`+fld("输入 DELETE 确认",inp("f_cf","","DELETE")),"删除");
+      if(f&&f.querySelector("#f_cf").value.trim()==="DELETE"){ try{await api.deleteMachine(id);toast("已删除");route();}catch(e){toast(e.message,true);} }
+    };
+    $("#mc_notify").onclick=async()=>{
+      const f=await modal("通知买家",
+        fld("标题 *",inp("n_sub",""))+fld("内容 *",`<textarea id="n_msg"></textarea>`)+
+        fld("指定买家用户 ID (可选, 留空=群发)",inp("n_uid",""))+fld("指定 VM ID (可选)",inp("n_vid","")),"发送");
+      if(!f) return;
+      const body={subject:f.querySelector("#n_sub").value.trim(), message:f.querySelector("#n_msg").value.trim()};
+      const uid=f.querySelector("#n_uid").value.trim(); if(uid) body.user_id=uid;
+      const vid=f.querySelector("#n_vid").value.trim(); if(vid) body.vm_id=vid;
+      if(!body.subject||!body.message){ toast("标题和内容必填",true); return; }
+      try{ await api.notifyBuyers(id,body); toast("通知已发送"); }catch(e){ toast(e.message,true); }
+    };
+    const sec=$("#mc_sec");
+    const showVMs=async()=>{
+      sec.innerHTML=`<span class="muted">加载中…</span>`;
+      try{ const d=await api.machineVMs(id,{page:1,page_size:50});
+        const list=d.vms||d.items||[];
+        sec.innerHTML=`<table><tr><th>备注/IP</th><th>用户</th><th>状态</th><th>到期</th></tr>`+
+          list.map(v=>`<tr><td>${esc(v.remark||v.ip||v.id)}</td><td>${esc(v.user_email||"")}</td><td>${statusPill(v.status)}</td><td>${fmtTime(v.expires_at)}</td></tr>`).join("")+`</table>`;
+      }catch(e){ sec.innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+    };
+    const showPlans=async()=>{
+      sec.innerHTML=`<span class="muted">加载中…</span>`;
+      try{ const d=await api.machinePlans(id,{page:1,page_size:50});
+        const list=d.plans||d.items||[];
+        sec.innerHTML=`<div class="toolbar"><button class="sm okb" id="pl_new">＋ 新建套餐</button></div>
+          <table><tr><th>名称</th><th>配置</th><th>月价</th><th>状态</th><th></th></tr>`+
+          list.map(p=>`<tr><td>${esc(p.name)}</td><td>${p.cpu}C/${(p.ram_mb/1024).toFixed(1)}G/${p.disk_gb}G</td>
+          <td>${fmtMoney(p.price_monthly)}</td><td>${statusPill(p.status)}</td>
+          <td><button class="sm danger" data-pdel="${p.id}">删除</button></td></tr>`).join("")+`</table>`;
+        sec.querySelector("#pl_new").onclick=newPlanFlow;
+        sec.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=async()=>{
+          const f=await modal("删除套餐","<p>确定删除该套餐吗？</p>","删除");
+          if(f){ try{await api.deletePlan(b.dataset.pdel);toast("已删除");showPlans();}catch(e){toast(e.message,true);} }
+        });
+      }catch(e){ sec.innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+    };
+    const newPlanFlow=async()=>{
+      const f=await modal("新建套餐",
+        fld("名称 *",inp("p_name",""))+fld("描述",inp("p_desc",""))+
+        fld("CPU 核数 *",inp("p_cpu","1","","number"))+fld("内存 MB *",inp("p_ram","1024","","number"))+
+        fld("硬盘 GB *",inp("p_disk","20","","number"))+fld("带宽 Mbps",inp("p_bw","100","","number"))+
+        fld("月流量 GB",inp("p_traffic","500","","number"))+fld("月价 USD *",inp("p_price","","","number"))+
+        fld("总库存",inp("p_max","","","number"))+fld("状态",`<select id="p_status"><option value="active">上架</option><option value="hidden">隐藏</option></select>`),"创建");
+      if(!f) return;
+      const g=x=>f.querySelector("#"+x).value;
+      const body={name:g("p_name").trim(), description:g("p_desc").value||undefined,
+        cpu:Number(g("p_cpu")), ram_mb:Number(g("p_ram")), disk_gb:Number(g("p_disk")),
+        bandwidth_mbps:Number(g("p_bw"))||undefined, monthly_traffic_gb:Number(g("p_traffic"))||undefined,
+        price_monthly:Number(g("p_price")), max_quantity:Number(g("p_max"))||undefined, status:g("p_status")};
+      if(!body.name||!(body.cpu>0)||!(body.price_monthly>=0)){ toast("名称/CPU/价格必填且合法",true); return; }
+      try{ await api.createMachinePlan(id,body); toast("套餐已创建"); showPlans(); }catch(e){ toast(e.message,true); }
+    };
+    const showPromos=async()=>{
+      sec.innerHTML=`<span class="muted">加载中…</span>`;
+      try{ const d=await api.machinePromos(id,{page:1,page_size:50});
+        const list=d.items||d["promo_codes"]||[];
+        sec.innerHTML=`<div class="toolbar"><button class="sm okb" id="pc_new">＋ 新建优惠码</button></div>
+          <table><tr><th>代码</th><th>折扣%</th><th>已用/上限</th><th>状态</th><th></th></tr>`+
+          list.map(p=>`<tr><td><b>${esc(p.code)}</b></td><td>${p.discount_percent}%</td><td>${p.used_count??"-"}/${p.max_uses||"∞"}</td><td>${statusPill(p.status)}</td>
+          <td style="white-space:nowrap">
+            ${p.status==="active"?`<button class="sm warnb" data-pdis="${p.id}">禁用</button>`:`<button class="sm okb" data-pen="${p.id}">启用</button>`}
+            <button class="sm danger" data-pdel="${p.id}">删除</button></td></tr>`).join("")+`</table>`;
+        sec.querySelector("#pc_new").onclick=async()=>{
+          const f=await modal("新建优惠码",
+            fld("代码 *",inp("c_code",""))+fld("折扣百分比 * (0-100)",inp("c_pct","","","number"))+
+            fld("可用次数 (0=无限)",inp("c_max","0","","number"))+
+            fld("过期时间 (留空=永不过期)",inp("c_exp","","YYYY-MM-DD","date")),"创建");
+          if(!f) return;
+          const g=x=>f.querySelector("#"+x).value;
+          const exp=g("c_exp"); const body={machine_id:id, code:g("c_code").trim(),
+            discount_percent:Number(g("c_pct")), max_uses:Number(g("c_max"))||0,
+            expires_at:exp?Math.floor(new Date(exp).getTime()/1000):0};
+          if(!body.code||!(body.discount_percent>0)){ toast("代码和折扣必填",true); return; }
+          try{ await api.createPromo(body); toast("已创建"); showPromos(); }catch(e){ toast(e.message,true); }
+        };
+        sec.querySelectorAll("[data-pen]").forEach(b=>b.onclick=async()=>{try{await api.enablePromo(b.dataset.pen);toast("已启用");showPromos();}catch(e){toast(e.message,true);}});
+        sec.querySelectorAll("[data-pdis]").forEach(b=>b.onclick=async()=>{try{await api.disablePromo(b.dataset.pdis);toast("已禁用");showPromos();}catch(e){toast(e.message,true);}});
+        sec.querySelectorAll("[data-pdel]").forEach(b=>b.onclick=async()=>{
+          const f=await modal("删除优惠码","<p>确定删除吗？</p>","删除");
+          if(f){try{await api.deletePromo(b.dataset.pdel);toast("已删除");showPromos();}catch(e){toast(e.message,true);}}});
+      }catch(e){ sec.innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+    };
+    M.querySelectorAll("[data-sec]").forEach(b=>b.onclick=()=>{
+      M.querySelectorAll("[data-sec]").forEach(x=>x.classList.add("ghost"));
+      b.classList.remove("ghost");
+      if(b.dataset.sec==="vms") showVMs(); else if(b.dataset.sec==="plans") showPlans(); else showPromos();
+    });
+    showVMs();
+  }catch(e){ M.innerHTML=`<div class="empty">❌ ${esc(e.message)}<br><span class="backlink" onclick="route()">← 返回</span></div>`; }
+}
+async function blockedUsersView(){
+  const M=$("#main");
+  M.innerHTML=`<span class="backlink" id="bk">← 返回</span><div class="card"><h3>🚫 黑名单</h3><div id="bl"><span class="muted">加载中…</span></div></div>`;
+  $("#bk").onclick=()=>route();
+  try{
+    const d=await api.blockedUsers({page:1,page_size:100});
+    const list=d.items||d.users||[];
+    $("#bl").innerHTML=`<table><tr><th>用户</th><th>原因</th><th></th></tr>`+
+      list.map(u=>`<tr><td>${esc(u.email||u.user_id||u.id)}</td><td>${esc(u.reason||"")}</td>
+      <td><button class="sm okb" data-unb="${u.user_id||u.id}">解封</button></td></tr>`).join("")+`</table>`
+      || `<span class="muted">黑名单为空</span>`;
+    $("#bl").querySelectorAll("[data-unb]").forEach(b=>b.onclick=async()=>{
+      try{ await api.unblockUser(b.dataset.unb); toast("已解封"); blockedUsersView(); }catch(e){ toast(e.message,true); }
+    });
+  }catch(e){ $("#bl").innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+}
+
+/* ================= ⚙️ 设置 ================= */
+async function tabSettings(M){
+  if(!S.key){ M.innerHTML = needAuth(); return; }
+  M.innerHTML = `<div class="grid2">
+    <div class="card"><h3>🔔 通知设置</h3>
+      ${fld("通知渠道",`<select id="s_via"><option value="email">邮件</option><option value="tg">Telegram</option></select>`)}
+      ${fld("通知语言",`<select id="s_lang"><option value="zh">中文</option><option value="en">English</option></select>`)}
+      <div class="toolbar"><button class="sm" id="s_save">保存</button><button class="sm ghost" id="s_test">发送测试通知</button></div>
+    </div>
+    <div class="card"><h3>📲 Telegram 绑定</h3><div id="tg_box"><span class="muted">加载中…</span></div></div>
+    <div class="card"><h3>🔑 API 密钥管理</h3>
+      <div class="toolbar"><button class="sm" id="k_view">查看当前密钥</button>
+      <button class="sm warnb" id="k_rotate">轮换(重新生成)</button>
+      <button class="sm danger" id="k_del">删除密钥</button></div>
+      <div id="k_out"></div>
+      <p class="muted" style="font-size:13px">轮换/删除后当前密钥立即失效, 需重新填写新密钥。</p>
+    </div>
+    <div class="card"><h3>🔒 修改登录密码</h3>
+      ${fld("新密码", inp("pw_new","","","password"))}
+      <button class="sm" id="pw_go">修改密码</button>
+    </div>
+    <div class="card"><h3>💳 收款信息 (机器主)</h3>
+      ${fld("收款文字信息 (最多1000字)", `<textarea id="pi_text"></textarea>`)}
+      <div class="toolbar"><button class="sm" id="pi_save">保存</button></div>
+      ${fld("收款二维码上传", `<input type="file" id="pi_qr" accept="image/*">`)}
+      <button class="sm" id="pi_up">上传二维码</button>
+      <div id="pi_out" style="margin-top:8px"></div>
+    </div>
+    <div class="card"><h3>🔗 分享卡片</h3>
+      <p class="muted" style="font-size:13px;margin-bottom:8px">生成套餐/母机的分享卡片图片 (新窗口打开)。</p>
+      ${fld("套餐 ID", inp("sh_plan","","UUID"))}<button class="sm" id="sh_plan_go">生成套餐卡片</button>
+      <div style="height:10px"></div>
+      ${fld("母机 ID", inp("sh_mc","","UUID"))}<button class="sm" id="sh_mc_go">生成母机卡片</button>
+    </div>
+  </div>`;
+  // 通知设置回填
+  try{ const me=await api.me();
+    $("#s_via").value=me.notify_via||"email"; $("#s_lang").value=me.notify_lang||"zh";
+    $("#pi_text").value=(me.payment_info&&(me.payment_info.text||""))||"";
+  }catch(e){}
+  $("#s_save").onclick=async()=>{ try{ await api.updateNotify({notify_via:$("#s_via").value, notify_lang:$("#s_lang").value}); toast("通知设置已保存"); }catch(e){ toast(e.message,true); } };
+  $("#s_test").onclick=async()=>{ try{ await api.testNotify(); toast("测试通知已发送"); }catch(e){ toast(e.message,true); } };
+  // TG
+  const tgBox=async()=>{
+    try{
+      const me=await api.me();
+      if(me.tg_chat_id){ $("#tg_box").innerHTML=`<p><span class="ok">✅ 已绑定</span></p><button class="sm danger" id="tg_un">解绑</button>`;
+        $("#tg_un").onclick=async()=>{ const f=await modal("解绑 Telegram","<p>确定解绑吗？</p>","解绑"); if(f){ try{await api.tgUnbind();toast("已解绑");tgBox();}catch(e){toast(e.message,true);} } };
+      }else{
+        let bot={};
+        try{ bot=await api.tgbot(); }catch(e){}
+        $("#tg_box").innerHTML=`<p class="muted">未绑定。点击开始绑定, 在 10 分钟内按提示操作。</p>
+          ${bot.bot_url?`<p><a href="${esc(bot.bot_url)}" target="_blank" rel="noopener">🤖 ${esc(bot.bot_name||"Telegram Bot")}</a></p>`:""}
+          <button class="sm" id="tg_start">开始绑定</button><div id="tg_code" style="margin-top:8px"></div>`;
+        $("#tg_start").onclick=async()=>{ try{ const r=await api.tgBindStart();
+            const url=r.tg_bot_url||r.bind_url||(bot.bot_url||"");
+            $("#tg_code").innerHTML=`<pre class="dump">${esc(JSON.stringify(r,null,2))}</pre>${url?`<p><a href="${esc(url)}" target="_blank" rel="noopener">👉 前往绑定</a></p>`:""}`;
+          }catch(e){ toast(e.message,true); } };
+      }
+    }catch(e){ $("#tg_box").innerHTML=`<span class="bad">${esc(e.message)}</span>`; }
+  };
+  tgBox();
+  // API key
+  $("#k_view").onclick=async()=>{ try{ const k=await api.getApiKey();
+      $("#k_out").innerHTML=`<pre class="dump">${esc(typeof k==="string"?k:JSON.stringify(k))}</pre>`; }catch(e){ toast(e.message,true); } };
+  $("#k_rotate").onclick=async()=>{ const f=await modal("轮换密钥","<p class='bad'>将生成新密钥, 旧密钥立即失效!</p>","确认轮换");
+    if(!f) return;
+    try{ const k=await api.rotateApiKey();
+      const nk = typeof k==="string"?k:(k.api_key||k.key||JSON.stringify(k));
+      $("#k_out").innerHTML=`<p class="ok">新密钥 (请立即复制保存):</p><pre class="dump">${esc(nk)}</pre>`;
+      S.key=nk; localStorage.setItem("narwhal_key",nk); $("#apikey").value=nk; S.authed=true; paintConn();
+    }catch(e){ toast(e.message,true); } };
+  $("#k_del").onclick=async()=>{ const f=await modal("删除密钥","<p class='bad'>删除后该密钥永久失效!</p>"+fld("输入 DELETE 确认",inp("f_cf","","DELETE")),"删除");
+    if(!(f&&f.querySelector("#f_cf").value.trim()==="DELETE")) return;
+    try{ await api.deleteApiKey(); S.key=""; S.authed=false; localStorage.removeItem("narwhal_key"); $("#apikey").value=""; paintConn(); toast("密钥已删除"); route(); }catch(e){ toast(e.message,true); } };
+  // 密码
+  $("#pw_go").onclick=async()=>{ const p=$("#pw_new").value; if(!p){toast("请输入新密码",true);return;}
+    try{ await api.changePassword(p); toast("密码已修改"); $("#pw_new").value=""; }catch(e){ toast(e.message,true); } };
+  // 收款信息
+  $("#pi_save").onclick=async()=>{ try{ await api.updatePayInfo($("#pi_text").value); toast("已保存"); }catch(e){ toast(e.message,true); } };
+  $("#pi_up").onclick=async()=>{ const fi=$("#pi_qr").files[0]; if(!fi){toast("请先选择图片",true);return;}
+    const fd=new FormData(); fd.append("file",fi);
+    try{ const r=await api.uploadPayQR(fd); $("#pi_out").innerHTML=`<span class="ok">上传成功:</span> <a href="${esc(r.url||"")}" target="_blank" rel="noopener">${esc(r.url||"")}</a>`; }catch(e){ toast(e.message,true); } };
+  // 分享卡片
+  $("#sh_plan_go").onclick=()=>{ const v=$("#sh_plan").value.trim(); if(v) window.open("/api/share/plan/"+v,"_blank"); };
+  $("#sh_mc_go").onclick=()=>{ const v=$("#sh_mc").value.trim(); if(v) window.open("/api/share/machine/"+v,"_blank"); };
+}
+
+/* ================= 启动 ================= */
+$("#apikey").value = S.key;
+$("#savekey").onclick = async ()=>{
+  S.key = $("#apikey").value.trim();
+  if(!S.key){ toast("请先粘贴 API 密钥", true); return; }
+  localStorage.setItem("narwhal_key", S.key);
+  paintConn();
+  const ok = await verifyKey();
+  if(ok){ toast("连接成功!"); route(); }
+};
+$("#clearkey").onclick = ()=>{
+  S.key=""; S.authed=false; localStorage.removeItem("narwhal_key");
+  $("#apikey").value=""; paintConn(); route();
+};
+$("#apikey").onkeydown = e=>{ if(e.key==="Enter") $("#savekey").click(); };
+renderTabs();
+paintConn();
+verifyKey().then(ok=>{ if(ok) route(); else route(); });
+</script>
+</body>
+</html>
